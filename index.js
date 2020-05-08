@@ -10,7 +10,7 @@ import minimist from 'minimist';
 
   if (currentPlatform === 'darwin') {
     try {
-      const xattr = await import('fs-xattr');
+      const xattr = (await import('fs-xattr')).default;
 
       setIgnoredStatus = (filePath) => {
         console.info('Setting extended attribute com.dropbox.ignored to 1');
