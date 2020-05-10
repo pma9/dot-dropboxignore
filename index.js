@@ -26,7 +26,7 @@ import minimist from 'minimist';
     }
   } else if (currentPlatform === 'win32') {
     try {
-      const Powershell = await import('powershell');
+      const Powershell = (await import('powershell')).default;
 
       setIgnoredStatus = (filePath) => {
         console.info(
