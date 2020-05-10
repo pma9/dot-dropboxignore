@@ -68,7 +68,7 @@ import minimist from 'minimist';
 
   console.info('Starting .dropboxignore watcher');
 
-  const fileListener = (event, filename) => {
+  const watchCallback = (event, filename) => {
     try {
       const relativeFilePath = path.relative(argv.path, filename);
       const absoluteFilePath = path.resolve(argv.path, filename);
@@ -94,6 +94,6 @@ import minimist from 'minimist';
 
   chokidar
     .watch(argv.path, { ignoreInitial: true })
-    .on('all', fileListener)
+    .on('all', watchCallback)
     .on('error', (error) => console.error({ error }));
 })();
