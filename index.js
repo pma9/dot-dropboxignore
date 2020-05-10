@@ -92,6 +92,8 @@ import minimist from 'minimist';
     }
   };
 
-  chokidar.watch(argv.path, { ignoreInitial: true }).on('all', fileListener);
-  // fs.watch(argv.path, { recursive: true }, fileListener);
+  chokidar
+    .watch(argv.path, { ignoreInitial: true })
+    .on('all', fileListener)
+    .on('error', (error) => console.error({ error }));
 })();
