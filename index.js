@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
+import chokidar from 'chokidar';
 import ignore from 'ignore';
 import minimist from 'minimist';
 
@@ -64,14 +65,30 @@ import minimist from 'minimist';
 
   console.info('Starting .dropboxignore watcher');
 
-  const fileListener = (eventType, filename) => {
-    if (eventType === 'rename' && dropboxIgnore.ignores(filename)) {
-      const filePath = path.resolve(argv.path, filename);
-      console.info({ filePath }, 'Found a file that should be ignored');
-      if (setIgnoredStatus != null) {
-        setIgnoredStatus(filePath);
+  const fileListener = (event, filename) => {
+    try {
+      const relativeFilePath = path.relative(argv.path, filename);
+      const absoluteFilePath = path.resolve(argv.path, filename);
+      if (relativeFilePath !== '') {
+        if (
+          ['add', 'change', 'addDir'].includes(event) &&
+          dropboxIgnore.ignores(relativeFilePath)
+        ) {
+          console.info(
+            { absoluteFilePath, event },
+            'Found a file that should be ignored',
+          );
+          if (setIgnoredStatus != null) {
+            setIgnoredStatus(absoluteFilePath);
+          }
+        }
       }
+    } catch (error) {
+      console.error({ error });
+      process.exit(1);
     }
   };
-  fs.watch(argv.path, { recursive: true }, fileListener);
+
+  chokidar.watch(argv.path, { ignoreInitial: true }).on('all', fileListener);
+  // fs.watch(argv.path, { recursive: true }, fileListener);
 })();
