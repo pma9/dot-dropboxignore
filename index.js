@@ -14,8 +14,11 @@ import minimist from 'minimist';
       const xattr = (await import('fs-xattr')).default;
 
       setIgnoredStatus = (filePath) => {
-        console.info('Setting extended attribute com.dropbox.ignored to 1');
-        xattr.setSync(filePath, 'com.dropbox.ignored', '1');
+        const setAttributes = xattr.listSync(filePath);
+        if (!setAttributes.includes('com.dropbox.ignored')) {
+          console.info('Setting extended attribute com.dropbox.ignored to 1');
+          xattr.setSync(filePath, 'com.dropbox.ignored', '1');
+        }
       };
     } catch (error) {
       console.error({ error }, 'There was an error with fs-xattr');
