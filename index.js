@@ -7,7 +7,49 @@ import minimist from 'minimist';
 
 (async function () {
   let setIgnoredStatus;
+  const ignoredDirectories = [];
   const currentPlatform = process.platform;
+
+  const isParentDirectory = (parent, child) => {
+    const relative = path.relative(parent, child);
+    return (
+      relative != null &&
+      !relative.startsWith('..') &&
+      !path.isAbsolute(relative)
+    );
+  };
+
+  const findSortPosition = (
+    pathInQuestion,
+    directories,
+    startIndex,
+    endIndex,
+  ) => {
+    const length = directories.length;
+    const start = startIndex != null ? startIndex : 0;
+    const end = endIndex != null ? endIndex : length - 1;
+    const mid = start + Math.floor((end - start) / 2);
+
+    if (pathInQuestion.localeCompare(directories[start]) <= 0) {
+      return start;
+    }
+
+    if (pathInQuestion.localeCompare(directories[end]) > 0) {
+      return end + 1;
+    }
+
+    if (pathInQuestion.localeCompare(directories[mid]) < 0) {
+      return findSortPosition(pathInQuestion, directories, start, mid - 1);
+    }
+
+    if (pathInQuestion.localeCompare(directories[mid]) > 0) {
+      return findSortPosition(pathInQuestion, directories, mid + 1, end);
+    }
+
+    if (pathInQuestion.localeCompare(directories[mid]) === 0) {
+      return mid;
+    }
+  };
 
   if (currentPlatform === 'darwin') {
     try {
@@ -74,7 +116,7 @@ import minimist from 'minimist';
       const absoluteFilePath = path.resolve(argv.path, filename);
       if (relativeFilePath !== '') {
         if (
-          ['add', 'change', 'addDir'].includes(event) &&
+          // ['add', 'change', 'addDir'].includes(event) &&
           dropboxIgnore.ignores(relativeFilePath)
         ) {
           console.info(
@@ -82,7 +124,55 @@ import minimist from 'minimist';
             'Found a file that should be ignored',
           );
           if (setIgnoredStatus != null) {
-            setIgnoredStatus(absoluteFilePath);
+            const ignoredDirectoriesLength = ignoredDirectories.length;
+            const sortPosition = findSortPosition(
+              absoluteFilePath,
+              ignoredDirectories,
+            );
+
+            const possibleParent =
+              sortPosition === 0
+                ? ignoredDirectories[0]
+                : ignoredDirectories[sortPosition - 1];
+
+            const possibleChildIndex =
+              sortPosition === ignoredDirectoriesLength
+                ? sortPosition - 1
+                : sortPosition;
+            const possibleChild = ignoredDirectories[possibleChildIndex];
+
+            console.log({ sortPosition, possibleParent, possibleChild });
+
+            if (absoluteFilePath === ignoredDirectories[sortPosition]) {
+              console.log('Already ignored');
+              return; // Already ignored
+            }
+
+            if (
+              possibleParent != null &&
+              isParentDirectory(possibleParent, absoluteFilePath)
+            ) {
+              console.log('Parent already ignored');
+              return; // Parent directory is already ignored
+            }
+
+            if (
+              possibleChild != null &&
+              isParentDirectory(absoluteFilePath, possibleChild)
+            ) {
+              console.log(`${absoluteFilePath} is parent to ${possibleChild}`);
+              ignoredDirectories.splice(
+                possibleChildIndex,
+                1,
+                absoluteFilePath,
+              );
+            } else {
+              console.log('Not ignored yet');
+              ignoredDirectories.splice(sortPosition, 0, absoluteFilePath);
+              console.log({ ignoredDirectories });
+            }
+            // setIgnoredStatus(absoluteFilePath);
+            console.log(`Syncing ${relativeFilePath}`);
           }
         }
       }
@@ -93,7 +183,7 @@ import minimist from 'minimist';
   };
 
   chokidar
-    .watch(argv.path, { ignoreInitial: true })
+    .watch(argv.path, { ignoreInitial: false })
     .on('all', watchCallback)
     .on('error', (error) => console.error({ error }));
 })();
