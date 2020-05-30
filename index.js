@@ -124,67 +124,52 @@ import minimist from 'minimist';
             'Found a file that should be ignored',
           );
           if (setIgnoredStatus != null) {
+            const directoryName = path.dirname(absoluteFilePath);
             const ignoredDirectoriesLength = ignoredDirectories.length;
             const sortPosition = findSortPosition(
-              absoluteFilePath,
+              directoryName,
               ignoredDirectories,
             );
 
-            const possibleRelative1 =
+            const possibleParent =
               sortPosition === 0
                 ? ignoredDirectories[0]
                 : ignoredDirectories[sortPosition - 1];
 
-            const possibleRelative2 =
+            const possibleChildIndex =
               sortPosition === ignoredDirectoriesLength
-                ? ignoredDirectories[sortPosition - 1]
-                : ignoredDirectories[sortPosition];
+                ? sortPosition - 1
+                : sortPosition;
+            const possibleChild = ignoredDirectories[possibleChildIndex];
 
-            console.log({ sortPosition, possibleRelative1, possibleRelative2 });
+            console.log({ sortPosition, possibleParent, possibleChild });
 
-            if (absoluteFilePath === ignoredDirectories[sortPosition]) {
+            if (directoryName === ignoredDirectories[sortPosition]) {
               console.log('Already ignored');
               return; // Already ignored
             }
 
             if (
-              (possibleRelative1 != null &&
-                isParentDirectory(possibleRelative1, absoluteFilePath)) ||
-              (possibleRelative2 != null &&
-                isParentDirectory(possibleRelative2, absoluteFilePath))
+              possibleParent != null &&
+              isParentDirectory(possibleParent, directoryName)
             ) {
               console.log('Parent already ignored');
               return; // Parent directory is already ignored
-            } else if (
-              possibleRelative1 != null &&
-              isParentDirectory(absoluteFilePath, possibleRelative1)
+            }
+
+            if (
+              possibleChild != null &&
+              isParentDirectory(directoryName, possibleChild)
             ) {
-              console.log(
-                `${absoluteFilePath} is parent to ${possibleRelative1}`,
-              );
-              ignoredDirectories.splice(
-                ignoredDirectories.indexOf(possibleRelative1),
-                1,
-                absoluteFilePath,
-              );
-            } else if (
-              possibleRelative2 != null &&
-              isParentDirectory(absoluteFilePath, possibleRelative2)
-            ) {
-              console.log(
-                `${absoluteFilePath} is parent to ${possibleRelative2}`,
-              );
-              ignoredDirectories.splice(
-                ignoredDirectories.indexOf(possibleRelative2),
-                1,
-                absoluteFilePath,
-              );
+              console.log(`${directoryName} is parent to ${possibleChild}`);
+              ignoredDirectories.splice(possibleChildIndex, 1, directoryName);
             } else {
               console.log('Not ignored yet');
-              ignoredDirectories.splice(sortPosition, 0, absoluteFilePath);
+              ignoredDirectories.splice(sortPosition, 0, directoryName);
+              console.log({ ignoredDirectories });
             }
             // setIgnoredStatus(absoluteFilePath);
-            console.log(`Syncing ${relativeFilePath} to `);
+            console.log(`Syncing ${relativeFilePath}`);
           }
         }
       }
